@@ -36,6 +36,9 @@
 | **Windows** | `…-setup.exe` · 便携版 `….zip` | |
 | **Linux** | `…-x86_64.AppImage` | `chmod +x` 直接跑，x11/wayland 依赖已打包 |
 
+> **Fork 维护说明：** 本分支相对上游的个人功能、验证状态和同步流程见
+> [`docs/fork-features/`](docs/fork-features/README.md)。
+
 ## 有什么
 
 | | |

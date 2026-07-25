@@ -36,6 +36,9 @@ Native builds for each platform on [**Releases**](https://github.com/l0ng-ai/tty
 | **Windows** | `…-setup.exe` · portable `….zip` | |
 | **Linux** | `…-x86_64.AppImage` | `chmod +x` and run — x11/wayland libs bundled |
 
+> **Fork maintenance:** personal deltas, verification state, and the upstream
+> sync procedure live in [`docs/fork-features/`](docs/fork-features/README.md).
+
 ## What's inside
 
 | | |
