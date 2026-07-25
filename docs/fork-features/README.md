@@ -27,6 +27,7 @@
 | 上游基线 | `upstream/main@673bdc9` |
 | 当前自用分支 | `personal/meta-input` |
 | 核心功能提交 | `1457c48` |
+| GPUI fork 基线 | `yoyooyooo/zed:tty7/macos-option-meta@3389e1f` |
 | 记录日期 | 2026-07-25 |
 
 基线 SHA 只描述本次记录时的比较点。每次同步上游后必须更新本表和下方特性状态。
@@ -36,12 +37,14 @@
 | 特性 | 状态 | 当前承载位置 | 上游关系 |
 |---|---|---|---|
 | [未实现 Meta 键交给 PTY](meta-input-handoff.md) | `active-fork` | `personal/meta-input@1457c48` | 暂不提交上游 |
+| [macOS Option/Meta 死键事件优先级](macos-option-meta-ime.md) | `active-fork-dependency` | `Cargo.toml` + `yoyooyooo/zed@3389e1f` | 暂不提交上游 |
 | [macOS 本地热替换工具](local-macos-install.md) | `active-fork-tooling` | `scripts/install-local-macos.sh` | 个人维护工具，不计划上游化 |
 | [GUI 启动时 UTF-8 locale 兜底](macos-utf8-locale.md) | `upstream-pr` | `fix/macos-utf8-locale@d952294` | 上游 PR [#173](https://github.com/l0ng-ai/tty7/pull/173) |
 
 状态含义：
 
 - `active-fork`：当前自用分支中的行为差异；
+- `active-fork-dependency`：行为差异由锁定的外部 fork 依赖承载；
 - `active-fork-tooling`：只服务 fork 维护，不改变产品行为；
 - `upstream-pr`：补丁位于独立分支并已提交上游，当前自用分支不因此自动具备该代码；
 - `absorbed`：上游已有等价实现，下一次自用分支不再携带补丁；
@@ -96,6 +99,7 @@ git cherry-pick <仍需保留的fork提交>
 cargo fmt --check
 cargo +1.97.1 test --locked option_as_alt
 cargo +1.97.1 test --locked meta_chords_edit_locally_or_handoff_to_the_pty
+cargo tree --locked -i gpui_macos
 bash -n scripts/install-local-macos.sh
 ```
 

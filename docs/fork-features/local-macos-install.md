@@ -52,6 +52,8 @@ RUST_TOOLCHAIN   默认 1.97.1
 TTY7_BACKUP_DIR  默认 ~/Library/Application Support/tty7-local-build-backups
 ```
 
+当前分支通过 `Cargo.toml` 和 `Cargo.lock` 固化 [macOS Option/Meta 死键事件优先级](macos-option-meta-ime.md) 补丁。安装脚本无需、也不应再手工修改 `~/.cargo/git/checkouts/**`；全新 Cargo 缓存应能从锁定的 fork 提交重建。
+
 ## 当前实现边界
 
 这是“替换 Rust 可执行文件”的快速路径，不同步以下 bundle 资源：

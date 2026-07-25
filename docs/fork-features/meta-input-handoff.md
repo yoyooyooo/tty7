@@ -7,7 +7,8 @@
 - 引入提交：`1457c48 fix(input): hand off unhandled Meta chords`
 - 上游提交：无
 - 上游 PR：无；当前决定是 fork 内自用
-- 端到端状态：已安装到本机 APP，等待真实 `Option+N` / `Option+X` 手工确认
+- 端到端状态：已在本机 APP + tmux 中确认 `Option+N` 与双击 `Option+X`
+- 下层依赖：[macOS Option/Meta 死键事件优先级](macos-option-meta-ime.md)
 
 ## 问题
 
@@ -59,14 +60,17 @@ cargo +1.97.1 test --locked option_as_alt
 
 结果：Meta handoff 测试 1 项通过；Option-as-Meta 原有测试 2 项通过。
 
-安装验证：`scripts/install-local-macos.sh --gui-only` 已成功构建 Release、替换 `/Applications/tty7.app`、重新 ad-hoc 签名并启动；daemon PID 保持不变。该证据只证明安装闭环，不替代真实按键验证。
+安装验证：`scripts/install-local-macos.sh --gui-only` 已成功构建 Release、替换 `/Applications/tty7.app`、重新 ad-hoc 签名并启动；daemon PID 保持不变。
+
+真实按键验证（2026-07-25）：`Option+N` 可新建 tmux window；连续两次 `Option+X` 可触发双击关闭绑定。`Option+N` 还依赖 GPUI 层避免死键事件在 tty7 回调前被 AppKit 消费，详见下层依赖文档。
 
 ## 已知限制
 
 1. `M-b/M-f/M-d` 仍由本地编辑器优先处理；若 tmux 也绑定这些键，tmux 仍收不到它们。
 2. `handoff_line_to_shell` 不接受包含换行的草稿，因此多行草稿下未知 Meta 键仍可能被吞掉。
 3. handoff 后，当前 prompt 剩余输入由 shell 管理；tty7 的本地补全、历史和 ghost suggestion 要到下一轮 prompt 才重新接管。
-4. 单元测试验证的是编码和 handoff 顺序，不证明 macOS 真实 Option 事件、tmux CSI-u 配置和用户脚本的完整端到端行为。
+4. 单元测试只验证编码和 handoff 顺序；真实 Option 事件仍需依赖 GPUI source patch 和端到端验收。
+5. 关闭 `macos_option_as_alt` 后的原生 macOS 死键兼容性尚未完成手工验收。
 
 ## 手工验收
 
