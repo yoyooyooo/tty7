@@ -1883,8 +1883,13 @@ impl TerminalView {
         // and M-d delete-word, mirroring the Alt+←/→/Delete handling below. On
         // macOS these are reachable only with `macos_option_as_alt` on — with it
         // off the chord composes a character upstream and arrives here altless,
-        // through the printable-text arm. Other Alt+letter chords stay swallowed
-        // no-ops as before (the local editor can't mirror every zle widget).
+        // through the printable-text arm.
+        //
+        // A printable Meta chord the local editor does not implement belongs to
+        // the PTY instead of becoming a silent no-op. This is required for an
+        // outer program such as tmux to receive root-table bindings like M-n and
+        // M-x. Handing the whole line over first also keeps zle/readline correct
+        // when no outer program consumes the chord.
         if m.alt && !m.platform && !m.control {
             match key {
                 "b" => {
@@ -1904,6 +1909,12 @@ impl TerminalView {
                     self.history_nav = None;
                     cx.notify();
                     return;
+                }
+                _ if key.chars().count() == 1 => {
+                    if let Some(bytes) = super::input::keystroke_to_bytes(ks, self.kitty_flags()) {
+                        self.handoff_line_to_shell(&bytes, cx);
+                        return;
+                    }
                 }
                 _ => {}
             }
@@ -7481,13 +7492,15 @@ mod gpui_tests {
     }
 
     /// Readline's Meta word chords act on the local prompt editor: M-b / M-f
-    /// move by word, M-d deletes the word right of the caret. (On macOS these
-    /// chords reach the editor only with `macos_option_as_alt` on — the
+    /// move by word, M-d deletes the word right of the caret. Other printable
+    /// Meta chords hand the line to the shell and reach the PTY, allowing an
+    /// outer program such as tmux to consume its root-table bindings. (On macOS
+    /// these chords reach the editor only with `macos_option_as_alt` on — the
     /// `on_key_down` reshape otherwise strips the alt bit; here we drive the
     /// editor dispatcher directly with the post-reshape keystroke.)
     #[gpui::test]
-    fn meta_word_chords_edit_the_prompt_line(cx: &mut TestAppContext) {
-        let (window, _daemon) = harness(cx);
+    fn meta_chords_edit_locally_or_handoff_to_the_pty(cx: &mut TestAppContext) {
+        let (window, mut daemon) = harness(cx);
         window
             .update(cx, |view, _, cx| {
                 let meta = |key: &str| gpui::Keystroke {
@@ -7496,7 +7509,7 @@ mod gpui_tests {
                         ..Default::default()
                     },
                     key: key.to_string(),
-                    key_char: None,
+                    key_char: Some(key.to_string()),
                 };
                 view.cmd.set("echo hello");
                 // M-b from the end lands at the start of "hello".
@@ -7511,12 +7524,17 @@ mod gpui_tests {
                 assert_eq!(view.cmd.cursor(), 0);
                 view.handle_editor_key(&meta("f"), cx);
                 assert_eq!(view.cmd.cursor(), 4);
-                // Other Meta letters stay swallowed no-ops (line untouched).
-                view.handle_editor_key(&meta("z"), cx);
-                assert_eq!(view.cmd.text(), "echo ");
-                assert_eq!(view.cmd.cursor(), 4);
+
+                // Unknown printable Meta chords are not editor no-ops: ship the
+                // draft first, then the chord, and let tmux/zle/readline own it.
+                view.cmd.set("echo");
+                view.handle_editor_key(&meta("n"), cx);
+                assert_eq!(view.cmd.text(), "");
+                assert_eq!(view.editor_handoff, Some(view.terminal.prompt_cycle()));
             })
             .unwrap();
+        assert_eq!(next_input(&mut daemon), b"echo".to_vec());
+        assert_eq!(next_input(&mut daemon), b"\x1bn".to_vec());
     }
 
     /// A `PtyWrite` raised by the VT layer (query replies, bracketed-paste
